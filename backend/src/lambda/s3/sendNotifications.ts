@@ -14,7 +14,6 @@ const connectionParams = {
 }
 
 const apiGateway = new AWS.ApiGatewayManagementApi(connectionParams)
-console.log('Processing SNS event ', JSON.stringify(apiGateway.apiVersions))
 
 export const handler: SNSHandler = async (event: SNSEvent) => {
 
@@ -54,22 +53,22 @@ async function sendMessageToClient(connectionId, payload) {
   try {
     console.log('Sending message to a connection', connectionId + payload)
 
-    // await apiGateway.postToConnection({
-    //   ConnectionId: connectionId,
-    //   Data: JSON.stringify(payload),
-    // }).promise()
+    await apiGateway.postToConnection({
+      ConnectionId: connectionId,
+      Data: JSON.stringify(payload),
+    }).promise()
 
   } catch (e) {
     console.log('Failed to send message', JSON.stringify(e))
     if (e.statusCode === 410) {
       console.log('Stale connection')
 
-    //   await docClient.delete({
-    //     TableName: connectionsTable,
-    //     Key: {
-    //       id: connectionId
-    //     }
-    //   }).promise()
+      await docClient.delete({
+        TableName: connectionsTable,
+        Key: {
+          id: connectionId
+        }
+      }).promise()
 
     }
   }

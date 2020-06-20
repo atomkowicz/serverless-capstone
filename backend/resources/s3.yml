@@ -1,8 +1,13 @@
 Resources:
   AttachmentsBucket:
     Type: AWS::S3::Bucket
+    DependsOn: SNSTopicPolicy
     Properties:
       BucketName: ${self:provider.environment.TODOS_S3_BUCKET}
+      NotificationConfiguration:
+        TopicConfigurations:
+          - Event: s3:ObjectCreated:Put
+            Topic: !Ref ImagesTopic
       CorsConfiguration:
         CorsRules:
           -
@@ -17,6 +22,7 @@ Resources:
               - DELETE
               - HEAD
             MaxAge: 3000
+            
   BucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -30,3 +36,32 @@ Resources:
             Action: 's3:GetObject'
             Resource: 'arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*'
       Bucket: !Ref AttachmentsBucket
+
+  ThumbnailsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${self:provider.environment.THUMBNAILS_S3_BUCKET}
+
+  SNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: sns:Publish
+            Resource:
+              !Ref ImagesTopic
+            Condition:
+              ArnLike:
+                AWS:SourceArn: arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}
+      Topics:
+        - !Ref ImagesTopic
+
+  ImagesTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Image bucket topic
+      TopicName: ${self:custom.topicName}
