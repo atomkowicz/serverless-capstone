@@ -1,0 +1,69 @@
+Resources:
+  TodoDynamoDBTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: todoId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: todoId
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+      TableName: ${self:provider.environment.TODOS_TABLE}
+      GlobalSecondaryIndexes:
+        - IndexName: ${self:provider.environment.TODO_INDEX_NAME}
+          KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: createdAt
+            KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # ImagesDynamoDBTable:
+  #   Type: "AWS::DynamoDB::Table"
+  #   Properties:
+  #     AttributeDefinitions:
+  #       - AttributeName: groupId
+  #         AttributeType: S
+  #       - AttributeName: timestamp
+  #         AttributeType: S
+  #       - AttributeName: imageId
+  #         AttributeType: S
+  #     KeySchema:
+  #       - AttributeName: groupId
+  #         KeyType: HASH
+  #       - AttributeName: timestamp
+  #         KeyType: RANGE
+  #     BillingMode: PAY_PER_REQUEST
+  #     StreamSpecification:
+  #       StreamViewType: NEW_IMAGE
+  #     TableName: ${self:provider.environment.IMAGES_TABLE}
+  #     GlobalSecondaryIndexes:
+  #       - IndexName: ${self:provider.environment.IMAGE_ID_INDEX}
+  #         KeySchema:
+  #         - AttributeName: imageId
+  #           KeyType: HASH
+  #         Projection:
+  #           ProjectionType: ALL
+
+  # WebSocketConnectionsDynamoDBTable:
+  #   Type: AWS::DynamoDB::Table
+  #   Properties:
+  #     AttributeDefinitions:
+  #       -
+  #         AttributeName: id
+  #         AttributeType: S
+  #     KeySchema:
+  #       -
+  #         AttributeName: id
+  #         KeyType: HASH
+  #     BillingMode: PAY_PER_REQUEST
+  #     TableName: ${self:provider.environment.CONNECTIONS_TABLE}
+      
