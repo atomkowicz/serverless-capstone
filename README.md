@@ -1,10 +1,10 @@
 # Serverless TODO
 
-To implement this project, you need to implement a simple TODO application using AWS Lambda and Serverless framework. Search for all comments starting with the `TODO:` in the code to find the placeholders that you need to implement.
+Simple TODO application using AWS Lambda and Serverless framework.
 
 # Functionality of the application
 
-This application will allow creating/removing/updating/fetching TODO items. Each TODO item can optionally have an attachment image. Each user only has access to TODO items that he/she has created.
+This application will allow creating/removing/updating/fetching TODO items. Each TODO item can optionally have an resized attachment thumbnail. Each user only has access to TODO items that he/she has created.
 
 # TODO items
 
@@ -16,11 +16,12 @@ The application should store TODO items, and each TODO item contains the followi
 * `dueDate` (string) - date and time by which an item should be completed
 * `done` (boolean) - true if an item was completed, false otherwise
 * `attachmentUrl` (string) (optional) - a URL pointing to an image attached to a TODO item
+* `thumnailUrl` (string) (optional) - a URL pointing to an thumbnail image attached to a TODO item
 
 You might also store an id of a user who created a TODO item.
 
 
-# Functions to be implemented
+# Implemented functions
 
 To implement this project, you need to implement the following functions and configure them in the `serverless.yml` file:
 
@@ -39,7 +40,8 @@ It should return data that looks like this:
       "name": "Buy milk",
       "dueDate": "2019-07-29T20:01:45.424Z",
       "done": false,
-      "attachmentUrl": "http://example.com/image.png"
+      "attachmentUrl": "http://example.com/image.png",
+      "thumbnailUrl": "http://example.com/thumb.png"
     },
     {
       "todoId": "456",
@@ -47,7 +49,8 @@ It should return data that looks like this:
       "name": "Send a letter",
       "dueDate": "2019-07-29T20:01:45.424Z",
       "done": true,
-      "attachmentUrl": "http://example.com/image.png"
+      "attachmentUrl": "http://example.com/image.png",
+      "thumbnailUrl": "http://example.com/thumb.png"
     },
   ]
 }
@@ -118,6 +121,16 @@ An id of a user can be extracted from a JWT token passed by a client.
 
 You also need to add any necessary resources to the `resources` section of the `serverless.yml` file such as DynamoDB table and S3 bucket.
 
+* `SendNotifications` - post notification to websocket connection
+
+To test this use wscat tool
+
+```json
+wscat -c wss://qfd3zn0cid.execute-api.us-east-1.amazonaws.com/dev 
+
+Connected (press CTRL+C to quit)
+< {"imageId":"104292464080365359565/1d50e309-a5e9-405c-80ca-5802a2d5888b"}
+```
 
 # Frontend
 
@@ -140,10 +153,6 @@ export const authConfig = {
 
 To implement authentication in your application, you would have to create an Auth0 application and copy "domain" and "client id" to the `config.ts` file in the `client` folder. We recommend using asymmetrically encrypted JWT tokens.
 
-# Best practices
-
-To complete this exercise, please follow the best practices from the 6th lesson of this course.
-
 ## Logging
 
 The starter code comes with a configured [Winston](https://github.com/winstonjs/winston) logger that creates [JSON formatted](https://stackify.com/what-is-structured-logging-and-why-developers-need-it/) log statements. You can use it to write log messages like this:
@@ -160,64 +169,6 @@ logger.info('User was authorized', {
 })
 ```
 
-
-# Grading the submission
-
-Once you have finished developing your application, please set `apiId` and Auth0 parameters in the `config.ts` file in the `client` folder. A reviewer would start the React development server to run the frontend that should be configured to interact with your serverless application.
-
-**IMPORTANT**
-
-*Please leave your application running until a submission is reviewed. If implemented correctly it will cost almost nothing when your application is idle.*
-
-# Suggestions
-
-To store TODO items, you might want to use a DynamoDB table with local secondary index(es). A create a local secondary index you need to create a DynamoDB resource like this:
-
-```yml
-
-TodosTable:
-  Type: AWS::DynamoDB::Table
-  Properties:
-    AttributeDefinitions:
-      - AttributeName: partitionKey
-        AttributeType: S
-      - AttributeName: sortKey
-        AttributeType: S
-      - AttributeName: indexKey
-        AttributeType: S
-    KeySchema:
-      - AttributeName: partitionKey
-        KeyType: HASH
-      - AttributeName: sortKey
-        KeyType: RANGE
-    BillingMode: PAY_PER_REQUEST
-    TableName: ${self:provider.environment.TODOS_TABLE}
-    LocalSecondaryIndexes:
-      - IndexName: ${self:provider.environment.INDEX_NAME}
-        KeySchema:
-          - AttributeName: partitionKey
-            KeyType: HASH
-          - AttributeName: indexKey
-            KeyType: RANGE
-        Projection:
-          ProjectionType: ALL # What attributes will be copied to an index
-
-```
-
-To query an index you need to use the `query()` method like:
-
-```ts
-await this.dynamoDBClient
-  .query({
-    TableName: 'table-name',
-    IndexName: 'index-name',
-    KeyConditionExpression: 'paritionKey = :paritionKey',
-    ExpressionAttributeValues: {
-      ':paritionKey': partitionKeyValue
-    }
-  })
-  .promise()
-```
 
 # How to run the application
 
@@ -246,26 +197,3 @@ This should start a development server with the React application that will inte
 # Postman collection
 
 An alternative way to test your API, you can use the Postman collection that contains sample requests. You can find a Postman collection in this project. To import this collection, do the following.
-
-Click on the import button:
-
-![Alt text](images/import-collection-1.png?raw=true "Image 1")
-
-
-Click on the "Choose Files":
-
-![Alt text](images/import-collection-2.png?raw=true "Image 2")
-
-
-Select a file to import:
-
-![Alt text](images/import-collection-3.png?raw=true "Image 3")
-
-
-Right click on the imported collection to set variables for the collection:
-
-![Alt text](images/import-collection-4.png?raw=true "Image 4")
-
-Provide variables for the collection (similarly to how this was done in the course):
-
-![Alt text](images/import-collection-5.png?raw=true "Image 5")
