@@ -14,3 +14,8 @@ export function getUserId(event: APIGatewayProxyEvent): string {
 
   return parseUserId(jwtToken)
 }
+
+export function getShortUserId(userId: string):string {
+  const shortUserId = userId.split("|")
+  return shortUserId.length === 2 ? shortUserId[1] : shortUserId[0]
+}

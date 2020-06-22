@@ -41,27 +41,28 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: ${self:provider.environment.THUMBNAILS_S3_BUCKET}
+      CorsConfiguration:
+        CorsRules:
+          -
+            AllowedOrigins:
+              - '*'
+            AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - HEAD
+            MaxAge: 3000
 
-  SNSTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
+  ThumbnailsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
     Properties:
       PolicyDocument:
+        Id: PublicReadForGetBucketObjectsPolicy
         Version: "2012-10-17"
         Statement:
-          - Effect: Allow
-            Principal:
-              AWS: "*"
-            Action: sns:Publish
-            Resource:
-              !Ref ImagesTopic
-            Condition:
-              ArnLike:
-                AWS:SourceArn: arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}
-      Topics:
-        - !Ref ImagesTopic
-
-  ImagesTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      DisplayName: Image bucket topic
-      TopicName: ${self:custom.topicName}
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: 'arn:aws:s3:::${self:provider.environment.THUMBNAILS_S3_BUCKET}/*'
+      Bucket: !Ref ThumbnailsBucket

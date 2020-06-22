@@ -62,10 +62,7 @@ provider:
     TODOS_TABLE: Cap-Todo-${self:provider.stage}
     TODO_INDEX_NAME: TodoIdIndex
     CONNECTIONS_TABLE: Connections-Todo-${self:provider.stage}
-    # IMAGES_TABLE: Images-${self:provider.stage}
-    # IMAGE_ID_INDEX: ImageIdIndex
     TODOS_S3_BUCKET: serverless-cap-bucket-5hv3az69bh-${self:provider.stage}
-    # IMAGES_S3_BUCKET: serverless-udagram-images-aa15o72a-${self:provider.stage}
     THUMBNAILS_S3_BUCKET: serverless-cap-thumbnail-5hv3az69bh-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
@@ -86,7 +83,7 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:274225709315:table/${self:provider.environment.TODOS_TABLE}
+        Resource: !GetAtt TodoDynamoDBTable.Arn
 
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
@@ -106,7 +103,7 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:PutItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:274225709315:table/${self:provider.environment.TODOS_TABLE}
+        Resource: !GetAtt TodoDynamoDBTable.Arn
 
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
@@ -126,7 +123,7 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:274225709315:table/${self:provider.environment.TODOS_TABLE}
+        Resource: !GetAtt TodoDynamoDBTable.Arn
 
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
@@ -140,7 +137,7 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:DeleteItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:274225709315:table/${self:provider.environment.TODOS_TABLE}
+        Resource: !GetAtt TodoDynamoDBTable.Arn
 
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
@@ -154,13 +151,13 @@ functions:
       - Effect: "Allow"
         Action:
           - s3:PutObject
-        Resource: 'arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}/*'
+        Resource: !Join [ '/', [ !GetAtt AttachmentsBucket.Arn, '*' ] ]
       - Effect: "Allow"
         Action:
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:274225709315:table/${self:provider.environment.TODOS_TABLE}
+        Resource: !GetAtt TodoDynamoDBTable.Arn
         
-  SendUploadNotifications:
+  SendNotifications:
     environment:
       STAGE: ${self:provider.stage}
       API_ID:
@@ -176,19 +173,41 @@ functions:
                 - Ref: AWS::AccountId
                 - ${self:custom.topicName}
           topicName: ${self:custom.topicName}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+        Resource: !GetAtt WebSocketConnectionsDynamoDBTable.Arn
+      - Effect: Allow
+        Action:
+          - execute-api:*
+        Resource: arn:aws:execute-api:${self:provider.region}:274225709315:*/${self:provider.stage}/POST/@connections/*
 
-  # ResizeImage:
-  #   handler: src/lambda/s3/resizeImage.handler
-  #   events:
-  #     - sns:
-  #         arn:
-  #           Fn::Join:
-  #             - ':'
-  #             - - arn:aws:sns
-  #               - Ref: AWS::Region
-  #               - Ref: AWS::AccountId
-  #               - ${self:custom.topicName}
-  #         topicName: ${self:custom.topicName}
+  ResizeImage:
+    handler: src/lambda/s3/resizeImage.handler
+    events:
+      - sns:
+          arn:
+            Fn::Join:
+              - ':'
+              - - arn:aws:sns
+                - Ref: AWS::Region
+                - Ref: AWS::AccountId
+                - ${self:custom.topicName}
+          topicName: ${self:custom.topicName}
+    iamRoleStatements:
+      - Effect: "Allow"
+        Action:
+          - s3:GetObject
+        Resource: !Join [ '/', [ !GetAtt AttachmentsBucket.Arn, '*' ] ]
+      - Effect: "Allow"
+        Action:
+          - s3:PutObject
+        Resource: !Join [ '/', [ !GetAtt ThumbnailsBucket.Arn, '*' ] ]
+      - Effect: "Allow"
+        Action:
+          - dynamodb:UpdateItem
+        Resource: !GetAtt TodoDynamoDBTable.Arn
 
   ConnectHandler:
     handler: src/lambda/websocket/connect.handler
@@ -199,7 +218,7 @@ functions:
       - Effect: "Allow"
         Action:
           - dynamodb:PutItem
-        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:274225709315:table/${self:provider.environment.CONNECTIONS_TABLE}
+        Resource: !GetAtt WebSocketConnectionsDynamoDBTable.Arn
 
   DisconnectHandler:
     handler: src/lambda/websocket/disconnect.handler
@@ -210,9 +229,10 @@ functions:
       - Effect: "Allow"
         Action:
           - dynamodb:DeleteItem
-        Resource: arn:aws:dynamodb:${opt:region, self:provider.region}:274225709315:table/${self:provider.environment.CONNECTIONS_TABLE}      
+        Resource: !GetAtt WebSocketConnectionsDynamoDBTable.Arn
       
 resources:
   - ${file(./resources/dynamo_db.yml)}
   - ${file(./resources/api_gateway.yml)}
   - ${file(./resources/s3.yml)}
+  - ${file(./resources/sns.yml)}

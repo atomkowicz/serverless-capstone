@@ -1,0 +1,24 @@
+Resources: 
+  SNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: "*"
+            Action: sns:Publish
+            Resource:
+              !Ref ImagesTopic
+            Condition:
+              ArnLike:
+                AWS:SourceArn: arn:aws:s3:::${self:provider.environment.TODOS_S3_BUCKET}
+      Topics:
+        - !Ref ImagesTopic
+
+  ImagesTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: Image bucket topic
+      TopicName: ${self:custom.topicName}
